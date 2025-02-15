@@ -2,52 +2,29 @@
 
 // Vertex shader program
 var VSHADER_SOURCE = `
-    precision mediump float;
     attribute vec4 a_Position;
-    attribute vec2 a_UV;
-    varying vec2 v_UV;
     uniform mat4 u_ModelMatrix;
     uniform mat4 u_GlobalRotateMatrix;
-    uniform mat4 u_ViewMatrix;
-    uniform mat4 u_ProjectionMatrix;
     void main() {
-        gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
-        v_UV = a_UV;
+        gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     }`;
 
 // Fragment shader program
 var FSHADER_SOURCE = `
     precision mediump float;
-    varying vec2 v_UV;
     uniform vec4 u_FragColor;
-    uniform sampler2D u_Sampler0;
-    uniform int u_WhichTexture;
     void main() {
-        
-        if (u_WhichTexture == -2) {
-            gl_FragColor = u_FragColor;                     // Use Color
-        } else if (u_WhichTexture == -1) {
-            gl_FragColor = vec4(v_UV, 1, 1);                // Use UV debug color
-        } else if (u_WhichTexture == 0) {
-            gl_FragColor = texture2D(u_Sampler0, v_UV);     // Use texture0
-        } else {
-            gl_FragColor = vec4(1, .2, .2, 1);              // Error, put Redish
-        }
+        gl_FragColor = u_FragColor;
     }`;
 
 // Global Variables
 let canvas;
 let gl;
 let a_Position;
-let a_UV;
 let u_FragColor;
 let u_Size;
 let u_ModelMatrix;
 let u_GlobalRotateMatrix;
-let u_ViewMatrix;
-let u_ProjectionMatrix;
-let u_Sampler0;
-let u_WhichTexture;
 
 // Setup GL context
 function setupWebGL(){
@@ -87,24 +64,10 @@ function connectVariablesToGLSL(){
         return;
     }
 
-    // Get the storage location of a_UV
-    a_UV = gl.getAttribLocation(gl.program, 'a_UV');
-    if (a_UV < 0) {
-        console.log('Failed to get the storage location of a_UV');
-        return;
-    }
-
     // Get the storage location of u_FragColor
     u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
     if (!u_FragColor) {
         console.log('Failed to get the storage location of u_FragColor');
-        return;
-    }
-
-    // Get the storage location of u_WhichTexture
-    u_WhichTexture = gl.getUniformLocation(gl.program, 'u_WhichTexture');
-    if (!u_WhichTexture) {
-        console.log('Failed to get the storage location of u_WhichTexture');
         return;
     }
 
@@ -126,34 +89,6 @@ function connectVariablesToGLSL(){
     if (!u_GlobalRotateMatrix) {
         console.log('Failed to get the storage location of u_GlobalRotateMatrix');
         return;
-    }
-
-    // Get the storage location of u_ProjectionMatrix
-    u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix');
-    if (!u_ProjectionMatrix) {
-        console.log('Failed to get the storage location of u_ProjectionMatrix');
-        return;
-    }
-
-    // Get the storage location of u_ViewMatrix
-    u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
-    if (!u_ViewMatrix) {
-        console.log('Failed to get the storage location of u_ViewMatrix');
-        return;
-    }
-
-    // Get the storage location of u_Sampler
-    var u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
-    if (!u_Sampler0) {
-      console.log('Failed to get the storage location of u_Sampler0');
-      return false;
-    }
-
-    // Get the storage location of u_Sampler
-    var u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
-    if (!u_Sampler0) {
-      console.log('Failed to get the storage location of u_Sampler0');
-      return false;
     }
 
     // Set an initial value for this matrix to identity
@@ -252,56 +187,6 @@ function addActionsForHtmlUI(){
     // document.getElementById('segmentsSlide').addEventListener('mouseup', function() { g_selectedSegments = this.value; })
 }
 
-function initTextures(gl, n) {
-  
-    // Create the image object
-    var image = new Image();
-    if (!image) {
-      console.log('Failed to create the image object');
-      return false;
-    }
-    // Register the event handler to be called when image loading is completed
-    image.onload = function(){ sendTextureToTEXTURE0(image); };
-    // Tell the browser to load an Image
-    image.src = '../resources/sky.jpg';
-
-    // Add more textures here later
-  
-    return true;
-  }
-
-  function sendTextureToTEXTURE0(image) {
-
-    // Create a texture object on gpu
-    var texture = gl.createTexture();
-    if (!texture) {
-      console.log('Failed to create the texture object');
-      return false;
-    }
-
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);  // Flip the image's y axis
-    // Activate texture unit0
-    gl.activeTexture(gl.TEXTURE0);
-    // Bind the texture object to the target
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-  
-    // Set the texture parameter
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    // Set the image to texture
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-    
-    // Set the texture unit 0 to the sampler
-    gl.uniform1i(u_Sampler0, 0);
-    
-    // // Clear <canvas>
-    // gl.clear(gl.COLOR_BUFFER_BIT);
-  
-    // // Draw the rectangle
-    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
-
-    console.log('finished loadTexture')
-  }
-
 var g_stats;
 function main() {
 
@@ -328,12 +213,8 @@ function main() {
     canvas.onmousemove = function(ev) { if (ev.buttons == 1) { click(ev) } };
     canvas.onmouseup = mouseReset;
 
-    // call init textures
-    initTextures(gl, 0);
-
     // Specify the color for clearing <canvas>
-    // gl.clearColor(0.2, 0.2, 0.2, 1.0);
-    gl.clearColor(0, 0, 0, 1.0);
+    gl.clearColor(0.2, 0.2, 0.2, 1.0);
 
     // Clear <canvas>
     // gl.clear(gl.COLOR_BUFFER_BIT);
@@ -441,11 +322,10 @@ function updateAnimationAngles() {
     }
 }
 
-function drawCube(M, color, textureNum=-1){
+function drawCube(M, color){
     cube = new Cube();
     cube.matrix = new Matrix4(M);
     cube.color = color;
-    cube.textureNum = textureNum;
     cube.render();
 }
 
@@ -460,14 +340,6 @@ function drawCylinder(M, color){
 function renderAllShapes(){
     // Check the time at the start of this function
     var startTime = performance.now()
-
-    // Pass the projection matrix
-    var projMat = new Matrix4();
-    gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
-
-    // Pass the view matrix
-    var viewMat = new Matrix4();
-    gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
     // Pass the matrix to u_ModelMatrix attribute
     var globalRotMat = new Matrix4().rotate(g_globalAngleY, 1, 0, 0);
@@ -488,7 +360,6 @@ function renderAllShapes(){
     // Draw the body
     var body = new Matrix4();
     var bodyColor = [1.0, 1.0, 1.0, 1.0];
-    var bodyTextureNum = 0;
 
     body.translate(-.20, -0.25, -0.5);
     body.rotate(0, 1, 0, 0)
@@ -508,7 +379,7 @@ function renderAllShapes(){
 
     body.scale(0.3, .4, 1);
 
-    drawCube(body, bodyColor, bodyTextureNum);
+    drawCube(body, bodyColor);
 
     // Draw the head
     var head = new Matrix4();
