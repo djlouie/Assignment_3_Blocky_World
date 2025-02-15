@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <title>Change a point color</title>
+        <title>BlockyAnimal</title>
     </head>
 
     <body onload="main()">
@@ -10,12 +10,11 @@
         Please use a browser that supports "canvas"
         </canvas>
 
-        <p id="numdot"> XXX </p>
+        <!-- <p id="numdot"> XXX </p> -->
 
-        <div>
-            <button type="button" id="clear">Clear</button>
-            <!-- <button type="button" id="customDrawing">Insta T-Rex</button> -->
-        </div>
+        <p>
+            <b>Polish Coffee Cow</b>
+        </p>
 
         <!-- <p>
             Drawing Mode:
@@ -49,7 +48,7 @@
         </div>
 
         <div>
-            Nose <input type="range" min="-45" max="45" value="0" class="slider" id="yellowSlide">
+            Nose <input type="range" min="-20" max="20" value="0" class="slider" id="yellowSlide">
         </div>
 
         <div>
@@ -58,9 +57,9 @@
             <button type="button" id="animationYellowOffButton">OFF</button>
         </div>
 
-        <div>
+        <!-- <div>
             Walk <input type="range" min="-20" max="20" value="0" class="slider" id="walkSlide">
-        </div>
+        </div> -->
 
         <div>
             Walk Animation:
@@ -79,10 +78,20 @@
         </div>
 
         <div>
+            Udder Animation:
+            <button type="button" id="animationUdderOnButton">ON</button>
+            <button type="button" id="animationUdderOffButton">OFF</button>
+        </div>
+
+        <div>
             Special Animation
             <button type="button" id="animationSpecialOnButton">ON</button>
             <button type="button" id="animationSpecialOffButton">OFF</button>
         </div>
+
+        <p>
+            Inspired by the <a href="https://youtu.be/OyDyOweu-PA?si=5KjxJnOLPAjMhq2n">Polish Cow Dance</a>
+        </p>
 
         <div>
             CameraAngleX <input type="range" min="-90" max="90" value="5" class="slider" id="angleSlideX">
