@@ -14,6 +14,7 @@ class Cube{
         var rgba = this.color;
         // var size = this.size;
         
+        // console.log("rendering cube with this.textureNum:", this.textureNum)
         // Pass the texture number
         gl.uniform1i(u_WhichTexture, this.textureNum);
 
