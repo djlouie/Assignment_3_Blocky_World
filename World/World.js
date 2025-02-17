@@ -22,6 +22,8 @@ var FSHADER_SOURCE = `
     uniform vec4 u_FragColor;
     uniform sampler2D u_Sampler0;
     uniform sampler2D u_Sampler1;
+    uniform sampler2D u_Sampler2;
+    uniform sampler2D u_Sampler3;
     uniform int u_TextureID0;  // A unique ID for u_Sampler0
     uniform int u_TextureID1;  // A unique ID for u_Sampler1
     uniform int u_WhichTexture;
@@ -35,6 +37,10 @@ var FSHADER_SOURCE = `
             gl_FragColor = texture2D(u_Sampler0, v_UV);     // Use texture0
         } else if (u_WhichTexture == 1) {
             gl_FragColor = texture2D(u_Sampler1, v_UV);     // Use texture1
+        } else if (u_WhichTexture == 2) {
+            gl_FragColor = texture2D(u_Sampler2, v_UV);     // Use texture2
+        } else if (u_WhichTexture == 3) {
+            gl_FragColor = texture2D(u_Sampler3, v_UV);     // Use texture3
         } else {
             gl_FragColor = vec4(1, .2, .2, 1);              // Error, put Redish
         }
@@ -53,6 +59,8 @@ let u_ViewMatrix;
 let u_ProjectionMatrix;
 let u_Sampler0;
 let u_Sampler1;
+let u_Sampler2;
+let u_Sampler3;
 let u_WhichTexture;
 
 // Setup GL context
@@ -163,6 +171,20 @@ function connectVariablesToGLSL(){
       return false;
     }
 
+    // Get the storage location of u_Sampler
+    u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
+    if (!u_Sampler2) {
+      console.log('Failed to get the storage location of u_Sampler2');
+      return false;
+    }
+
+    // Get the storage location of u_Sampler
+    u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
+    if (!u_Sampler3) {
+      console.log('Failed to get the storage location of u_Sampler3');
+      return false;
+    }
+
     // Set an initial value for this matrix to identity
     var identityM = new Matrix4();
     gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
@@ -179,8 +201,8 @@ let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_selectedSegments = 10;
-let g_globalAngleX = 5;
-let g_globalAngleY = 5;
+let g_globalAngleX = 0;
+let g_globalAngleY = 0;
 let g_yellowAngle = 0;
 let g_magentaAngle = 0;
 let g_yellowAnimation = false;
@@ -201,6 +223,8 @@ let g_specialDisplacement = 0;
 let g_specialAnimation = false;
 let g_udderAngle = 0;
 let g_udderAnimation = false;
+let g_aspectScalar = 1;
+let g_mouseRotationScalar = 1;
 
 // Set up actions for the HTML UI elements
 function addActionsForHtmlUI(){
@@ -254,6 +278,10 @@ function addActionsForHtmlUI(){
     document.getElementById('angleSlideY').addEventListener('mousemove', function() { g_globalAngleY = this.value; renderAllShapes(); mouseReset(); } );
 
     document.getElementById('fov').addEventListener('mousemove', function() { g_camera.fov = this.value; renderAllShapes(); mouseReset(); } );
+    document.getElementById('aspectScalar').addEventListener('mousemove', function() { g_aspectScalar = this.value; renderAllShapes(); mouseReset(); } );
+
+    document.getElementById('mouseRotationScalar').addEventListener('mousemove', function() { g_mouseRotationScalar = this.value; renderAllShapes(); mouseReset(); } );
+    // document.getElementById('aspectScalar').addEventListener('mousemove', function() { g_aspectScalar = this.value; renderAllShapes(); mouseReset(); } );
     // // Size + Segments Slider Events
     // document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selectedSize = this.value; })
     // document.getElementById('alphaSlide').addEventListener('mouseup', function() { g_selectedColor[3] = this.value; })
@@ -294,6 +322,8 @@ function addActionsForHtmlUI(){
 function initTextures() {
     var image1 = new Image();
     var image2 = new Image();
+    var image3 = new Image();
+    var image4 = new Image();
 
     // Ensure image1 loads first
     image1.onload = function () {
@@ -322,6 +352,34 @@ function initTextures() {
 
     // Load image2 (Make sure it is a Power of Two dimension image)
     image2.src = '../resources/sky.jpg';
+
+    // Ensure image2 loads after image1
+    image3.onload = function () {
+        console.log("Image loaded:", image3.src);
+        drawImageToCanvas(image3);  // Draw on canvas (debugging)
+        sendTextureToTEXTURE2(image3); // Continue WebGL processing with image3
+    };
+
+    image3.onerror = function () {
+        console.error("Failed to load image:", image3.src);
+    };
+
+    // Load image3 (Make sure it is a Power of Two dimension image)
+    image3.src = '../resources/Stone_Bricks.png';
+
+    // Ensure image4 loads after image1
+    image4.onload = function () {
+        console.log("Image loaded:", image4.src);
+        drawImageToCanvas(image4);  // Draw on canvas (debugging)
+        sendTextureToTEXTURE3(image4); // Continue WebGL processing with image4
+    };
+
+    image4.onerror = function () {
+        console.error("Failed to load image:", image4.src);
+    };
+
+    // Load image4 (Make sure it is a Power of Two dimension image)
+    image4.src = '../resources/WoodPlank.jpg';
 }
 
 // Function to draw image on HTML <canvas>
@@ -366,7 +424,39 @@ function sendTextureToTEXTURE1(image) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
     gl.uniform1i(u_Sampler1, 1);  // Set the sampler for TEXTURE1
-    console.log('Texture bound to TEXTURE0, Sampler0 set to 0');
+    console.log('Texture bound to TEXTURE1, Sampler0 set to 1');
+}
+
+function sendTextureToTEXTURE2(image) {
+    
+    var texture = gl.createTexture();
+    console.log('Binding texture to TEXTURE2:', image.src);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);  // Flip the image's y-axis
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    gl.uniform1i(u_Sampler2, 2);  // Set the sampler for TEXTURE1
+    console.log('Texture bound to TEXTURE2, Sampler2 set to 2');
+}
+
+function sendTextureToTEXTURE3(image) {
+    
+    var texture = gl.createTexture();
+    console.log('Binding texture to TEXTURE3:', image.src);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);  // Flip the image's y-axis
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    gl.uniform1i(u_Sampler3, 3);  // Set the sampler for TEXTURE1
+    console.log('Texture bound to TEXTURE3, Sampler3 set to 3');
 }
 
 
@@ -520,6 +610,8 @@ function keydown(ev){
     } else if (key == 'd'){
         g_camera.right(1);
     } else if (key == 'w'){
+        // update camera
+        g_camera.collision_map = g_map;
         g_camera.forward(1);
     } else if (key == 's'){
         g_camera.backward(1);
@@ -527,18 +619,44 @@ function keydown(ev){
         g_camera.rotateLeft(5);
     } else if (key == 'e'){
         g_camera.rotateRight(5);
+    } else if (key == 't'){
+        console.log(g_camera.eye.elements)
+        
+        // direction vector
+        var d = Vector3.sub(g_camera.at, g_camera.eye);
+        d.normalize().mul(1);
+
+        // eye prediction
+        let eye_prediction = new Vector3(g_camera.eye.elements);
+        eye_prediction.elements[0] = eye_prediction.elements[0] + 16;
+        eye_prediction.elements[2] = eye_prediction.elements[2] + 16;
+        // eye_prediction.elements[2] = 32 - eye_prediction.elements[2];
+
+        console.log(g_map);
+        console.log("Current Eye:", g_camera.eye.elements);
+        console.log("Eye X prediction:", eye_prediction.elements[0]);
+        console.log("Eye Z prediction:", eye_prediction.elements[2]);
+        console.log("Wall prediction:", g_map[Math.floor(eye_prediction.elements[0])][Math.floor(eye_prediction.elements[2])]);
+        
+
+        // don't go forward if you would for into a wall
+        if(g_map[Math.floor(eye_prediction.elements[0])][Math.floor(eye_prediction.elements[2])] == 1){
+            g_map[Math.floor(eye_prediction.elements[0])][Math.floor(eye_prediction.elements[2])] = 0;
+        }
+
+        console.log(g_map);
     }
 
     renderAllShapes();
     console.log(key);
 }
 
-function drawCube(M, color, textureNum=-1){
+function drawCube(M, color, textureNum=-2){
     cube = new Cube();
     cube.matrix = new Matrix4(M);
     cube.color = color;
     cube.textureNum = textureNum;
-    cube.render();
+    cube.renderFastUV();
 }
 
 function drawCylinder(M, color){
@@ -551,28 +669,141 @@ function drawCylinder(M, color){
 var g_camera = new Camera();
 
 var g_map = [
-    [1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 1, 1, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 1, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 
 function drawMap(){
-    for (x=0; x<8; x++){
-        for (y=0; y<8; y++){
+    for (x=0; x<32; x++){
+        for (y=0; y<32; y++){
             if(g_map[x][y] == 1){
                 var body = new Cube();
                 body.color = [1,1,1,1];
-                body.matrix.translate(x-4, -.75, y-4);
-                body.render();
+                body.textureNum = 2;
+                body.matrix.translate(0, -.75, 0);
+                // body.matrix.scale(.3, .3, .3);
+                body.matrix.translate(x-16, 0, y-16);
+                body.renderFastUV();
             }
         }
     }
+
+    for (x=0; x<32; x++) {
+        for (y=0; y<32; y++) {
+            if (x==0 || x==31 || y==0 || y==31) {
+                var body = new Cube();
+                body.textureNum = 2;
+                body.color = [0.8, 1, 1, 1];
+                body.matrix.translate(0, -.75, 0);
+                // body.matrix.scale(.3, .3, .3);
+                body.matrix.translate(x-16, 1, y-16);
+                body.renderFastUV();
+            }
+        }    
+    }
+
+    for (x=0; x<32; x++) {
+        for (y=0; y<32; y++) {
+            if (x==0 || x==31 || y==0 || y==31) {
+                var body = new Cube();
+                body.textureNum = 2;
+                body.color = [0.8, 1, 1, 1];
+                body.matrix.translate(0, -.75, 0);
+                // body.matrix.scale(.3, .3, .3);
+                body.matrix.translate(x-16, 2, y-16);
+                body.renderFastUV();
+            }
+        }    
+    }
+
+    for (x=0; x<32; x++) {
+        for (y=0; y<32; y++) {
+            if ( (x==0 && y%2==0) || (x==31 && y%2==0) || (y==0 && x%2==0) || (y==31 && x%2==0)) {
+                var body = new Cube();
+                body.textureNum = 2;
+                body.color = [0.8, 1, 1, 1];
+                body.matrix.translate(0, -.75, 0);
+                // body.matrix.scale(.3, .3, .3);
+                body.matrix.translate(x-16, 3, y-16);
+                body.renderFastUV();
+            }
+        }    
+    }
+
+    // draw house
+    for (x=0; x<8; x++){
+        for (y=0; y<8; y++){
+            if(x == 0 || x == 7 || y == 7){
+                var body = new Cube();
+                body.color = [1,1,1,1];
+                body.textureNum = 2;
+                body.matrix.translate(0, -.75, 0);
+                // body.matrix.scale(.3, .3, .3);
+                body.matrix.translate(12 + x-16, 1, 13 + y-16);
+                body.renderFastUV();
+            }
+        }
+    }
+
+    for (x=0; x<8; x++){
+        for (y=0; y<8; y++){
+            // if(x == 0 || x == 7 || y == 7){
+            var body = new Cube();
+            body.color = [1,1,1,1];
+            body.textureNum = 3;
+            body.matrix.translate(0, -.75, 0);
+            // body.matrix.scale(.3, .3, .3);
+            body.matrix.translate(12 + x-16, 2, 13 + y-16);
+            body.renderFastUV();
+            // }
+        }
+    }
 }
+
+// function drawMap() {
+//     for (x=0; x<32; x++) {
+//         for (y=0; y<32; y++) {
+//             if (x==0 || x==31 || y==0 || y==31) {
+//                 var body = new Cube();
+//                 body.color = [0.8, 1, 1, 1];
+//                 body.matrix.translate(0, -.75, 0);
+//                 body.matrix.scale(.3, .3, .3);
+//                 body.matrix.translate(x-16, 0, y-16);
+//                 body.render();
+//             }
+//         }    
+//     }
+// }
 
 // Draw every shape that is supposed to be in the canvas
 function renderAllShapes(){
@@ -581,7 +812,8 @@ function renderAllShapes(){
 
     // Pass the projection matrix
     var projMat = new Matrix4();
-    projMat.setPerspective(g_camera.fov, canvas.width/canvas.height, .1, 100);
+    // fov, aspect, near, far
+    projMat.setPerspective(g_camera.fov, g_aspectScalar * canvas.width/canvas.height, .1, 100);
     gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
 
     // Pass the view matrix
@@ -597,8 +829,17 @@ function renderAllShapes(){
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
     // Pass the matrix to u_GlobalRotateMatrix attribute
-    var globalRotMat = new Matrix4().rotate(g_globalAngleY, 1, 0, 0);
-    globalRotMat = globalRotMat.rotate(g_globalAngleX, 0, 1, 0);
+    // var globalRotMat = new Matrix4().rotate(g_globalAngleY, 1, 0, 0);
+    // globalRotMat = globalRotMat.rotate(g_globalAngleX, 0, 1, 0);
+
+    var globalRotMat = new Matrix4();
+
+    if(g_globalAngleY != 0){
+        globalRotMat = globalRotMat.rotate(g_globalAngleY, 1, 0, 0);
+    }
+    if(g_globalAngleX != 0){
+        globalRotMat = globalRotMat.rotate(g_globalAngleX, 0, 1, 0);
+    }
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
     
     // Clear <canvas>
@@ -613,9 +854,9 @@ function renderAllShapes(){
     floor.color = [1,0,0,1];
     floor.textureNum = 0;
     floor.matrix.translate(0, -.75, 0);
-    floor.matrix.scale(10, 0, 10);
+    floor.matrix.scale(30, 0, 30);
     floor.matrix.translate(-.5, 0, -.5);
-    floor.render();
+    floor.renderFastUV();
 
     // Draw the sky
     var sky = new Cube();
@@ -623,7 +864,7 @@ function renderAllShapes(){
     sky.textureNum = 1;
     sky.matrix.scale(50, 50, 50);
     sky.matrix.translate(-.5, -.5, -.5);
-    sky.render();
+    sky.renderFastUV();
 
     // Draw Map
     drawMap()
@@ -1142,11 +1383,51 @@ function rotate(x, y){
     g_globalAngleY = (g_initialAngleY + (y - g_initialMouseY)*360) % 360;
 }
 
+let g_oldRotateAngle = 0;
+
+function gameWorldRotate(x, y){
+
+    if (g_initialMouseX === null){
+        g_initialMouseX = x;
+    }
+    if (g_initialMouseY === null){
+        g_initialMouseY = y;
+    }
+    if (g_oldRotateAngle === null){
+        g_oldRotateAngle = 0;
+    }
+
+    // Rotate
+    // console.log("ROTATE")
+    // console.log(g_initialAngleX)
+    // console.log(g_initialAngleY)
+    // console.log(g_initialMouseX)
+    // console.log(g_initialMouseY)
+    // console.log(g_globalAngleX)
+    // console.log(g_globalAngleY)
+
+    let rotateDirection =  ((g_initialMouseX - x)*360) % 360;
+    let rotateAngle = g_oldRotateAngle - rotateDirection;
+
+    console.log('Rotate Direction:', rotateDirection);
+    console.log('Rotate Angle:', rotateAngle);
+    console.log('Old Rotate Angle:', g_oldRotateAngle);
+
+    if (rotateAngle >= 0){
+        g_camera.rotateLeft(-rotateAngle * g_mouseRotationScalar);
+    } else {
+        g_camera.rotateRight(rotateAngle * g_mouseRotationScalar);
+    }
+
+    g_oldRotateAngle = rotateDirection;
+}
+
 function mouseReset() {
     g_initialAngleX = null;
     g_initialAngleY = null;
     g_initialMouseX = null;
     g_initialMouseY = null;
+    g_oldRotateAngle = null;
 }
 
 function click(ev) {
@@ -1161,7 +1442,7 @@ function click(ev) {
 
     let [x, y] = convertCoordinateEventsToGL(ev);
 
-    rotate(x, y);
+    gameWorldRotate(x, y);
 
     // // Create and store the new point
     // let point;

@@ -1,9 +1,10 @@
 class Camera {
     constructor(){
-        this.eye = new Vector3({0: 0, 1: 0, 2: 3});
-        this.at = new Vector3({0: 0, 1: 0, 2: -100});
+        this.eye = new Vector3({0: -12, 1: 0, 2: 6});
+        this.at = new Vector3({0: 39, 1: 0, 2: 5});
         this.up = new Vector3({0: 0, 1: 1, 2: 0});
-        this.fov = 60;
+        this.fov = 40;
+        this.collision_map = null;
 
         // this.eye = new Vector3([0, 0, 3]);
         // this.at = new Vector3([0, 0, -100]);
@@ -12,8 +13,33 @@ class Camera {
 
     // calculate vector from eye to at (d = direction)
     forward(scalar=1) {
+
+        console.log(this.eye.elements)
+        
+        // direction vector
         var d = Vector3.sub(this.at, this.eye);
         d.normalize().mul(scalar);
+
+        // eye prediction
+        let eye_prediction = new Vector3(this.eye.elements);
+        eye_prediction.elements[0] = eye_prediction.elements[0] + 16;
+        eye_prediction.elements[2] = eye_prediction.elements[2] + 16;
+        // eye_prediction.elements[0] = eye_prediction.elements[0];
+        // eye_prediction.elements[2] = 32 - eye_prediction.elements[2];
+
+        console.log(this.collision_map);
+        console.log("Current Eye:", this.eye.elements);
+        console.log("Eye X prediction:", eye_prediction.elements[0]);
+        console.log("Eye Z prediction:", eye_prediction.elements[2]);
+        console.log("Wall prediction:", this.collision_map[Math.floor(eye_prediction.elements[0])][Math.floor(eye_prediction.elements[2])]);
+        
+
+        // don't go forward if you would for into a wall
+        if(this.collision_map[Math.floor(eye_prediction.elements[0])][Math.floor(eye_prediction.elements[2])] == 1){
+            return;
+        }
+        
+        // Move forward
         this.at.add(d);
         this.eye.add(d);
     }
@@ -64,10 +90,12 @@ class Camera {
         d.elements[2] = r * Math.cos(theta);
         
         this.at = Vector3.add(this.eye, d);
+
+        console.log('EYE', this.eye.elements);
+        console.log('AT', this.at.elements);
     }
 
     rotateLeft(degrees=5) {
-        console.log("this.at.elements before", this.at.elements)
         let d = Vector3.sub(this.at, this.eye);
         // get rid of y component of the vector (cause we are rotating around it)
         d.elements[1] = 0;
@@ -80,10 +108,10 @@ class Camera {
         d.elements[2] = r * Math.sin(theta);
         d.elements[0] = r * Math.cos(theta);
         
-        let dog = Vector3.add(this.eye, d);
-        console.log("this.dog.elements after", dog.elements)
-        this.at = dog
-        console.log("this.at.elements after", this.at.elements)
+        this.at = Vector3.add(this.eye, d);
+
+        console.log('EYE', this.eye.elements);
+        console.log('AT', this.at.elements);
     }
 }
 

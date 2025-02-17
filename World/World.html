@@ -14,6 +14,39 @@
         Please use a browser that supports "canvas"
         </canvas>
 
+        <p>
+            Perspective Camera:
+        </p>
+        <div>
+            FOV <input type="range" min="0" max="200" value="40" class="slider" id="fov">
+            Aspect Scalar <input type="range" min="0" max="3" value="1" step="0.5" class="slider" id="aspectScalar">
+        </div>
+        <p>
+            View Camera:
+        </p>
+        <div>
+            Mouse Rotation Scalar <input type="range" min="0" max="3" value="1" step="0.1" class="slider" id="mouseRotationScalar">
+        </div>
+
+        <p>
+            <b>
+                Story: Welcome mortal, you have been dropped in the testing ground for the games of higher beings. Come, find me in my makeshift abode.
+                Once you do, you may press the special button below and receive a personal reward from me. (Controls are below)
+                <div>
+                    Special Animation
+                    <button type="button" id="animationSpecialOnButton">ON</button>
+                    <button type="button" id="animationSpecialOffButton">OFF</button>
+                </div>
+            </b>
+        </p>
+
+        <p>
+            WASD To Move. QE To rotate left and right. T to break a block that is blocking you.
+            To break a block for sure, get inside of it and hit T: the collision on forward isn't perfectly callibrated to the outside of the boxes.
+            Breaking the wall blocks makes it very noticeable.
+            Collision only works on forward, so you can use side ways to clip through walls.
+        </p>
+
         <!-- <p id="numdot"> XXX </p> -->
 
         <p>
@@ -93,17 +126,15 @@
             <button type="button" id="animationSpecialOffButton">OFF</button>
         </div>
 
+        <div>
+            CameraAngleX <input type="range" min="-90" max="90" value="0" class="slider" id="angleSlideX">
+            <p></p>
+            CameraAngleY <input type="range" min="-90" max="90" value="0" class="slider" id="angleSlideY">
+        </div>
+
         <p>
             Inspired by the <a href="https://youtu.be/OyDyOweu-PA?si=5KjxJnOLPAjMhq2n">Polish Cow Dance</a>
         </p>
-
-        <div>
-            CameraAngleX <input type="range" min="-90" max="90" value="5" class="slider" id="angleSlideX">
-            <p></p>
-            CameraAngleY <input type="range" min="-90" max="90" value="5" class="slider" id="angleSlideY">
-            <p></p>
-            FOV <input type="range" min="0" max="200" value="60" class="slider" id="fov">
-        </div>
 
         <!-- <p>
             Shape Color Shortcuts:
