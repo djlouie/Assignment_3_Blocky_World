@@ -1,7 +1,7 @@
 CSE 160 - Blocky World Assignment 3
 
 * Make a Blocky World
-    * [https://djlouie.github.io/Assignment_2_Blocky_Animal/BlockyAnimal/BlockyAnimal.html](https://djlouie.github.io/Assignment_2_Blocky_Animal/BlockyAnimal/BlockyAnimal.html)
+    * [https://djlouie.github.io/Assignment_3_Blocky_World/World/World.html](https://djlouie.github.io/Assignment_3_Blocky_World/World/World.html)
 
 
 Used ChatGPT To Help With This Assignment

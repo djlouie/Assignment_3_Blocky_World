@@ -591,6 +591,10 @@ function updateAnimationAngles() {
         g_specialAngle4 = (-10 * Math.max(Math.min(Math.cos(k * g_seconds), 0.8), -0.8) * 1.25);
         g_specialDisplacement = 0.5;
 
+
+        g_camera.fov = Math.cos(g_seconds) * 200 + 100;
+        document.getElementById('fov').value = g_camera.fov;
+
         g_audio.play();
     }
     else {
