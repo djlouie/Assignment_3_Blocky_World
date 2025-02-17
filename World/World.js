@@ -24,6 +24,7 @@ var FSHADER_SOURCE = `
     uniform sampler2D u_Sampler1;
     uniform sampler2D u_Sampler2;
     uniform sampler2D u_Sampler3;
+    uniform sampler2D u_Sampler4;
     uniform int u_TextureID0;  // A unique ID for u_Sampler0
     uniform int u_TextureID1;  // A unique ID for u_Sampler1
     uniform int u_WhichTexture;
@@ -41,6 +42,8 @@ var FSHADER_SOURCE = `
             gl_FragColor = texture2D(u_Sampler2, v_UV);     // Use texture2
         } else if (u_WhichTexture == 3) {
             gl_FragColor = texture2D(u_Sampler3, v_UV);     // Use texture3
+        } else if (u_WhichTexture == 4) {
+            gl_FragColor = texture2D(u_Sampler4, v_UV);     // Use texture4
         } else {
             gl_FragColor = vec4(1, .2, .2, 1);              // Error, put Redish
         }
@@ -61,6 +64,7 @@ let u_Sampler0;
 let u_Sampler1;
 let u_Sampler2;
 let u_Sampler3;
+let u_Sampler4;
 let u_WhichTexture;
 
 // Setup GL context
@@ -182,6 +186,13 @@ function connectVariablesToGLSL(){
     u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
     if (!u_Sampler3) {
       console.log('Failed to get the storage location of u_Sampler3');
+      return false;
+    }
+
+    // Get the storage location of u_Sampler
+    u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
+    if (!u_Sampler4) {
+      console.log('Failed to get the storage location of u_Sampler4');
       return false;
     }
 
@@ -324,6 +335,7 @@ function initTextures() {
     var image2 = new Image();
     var image3 = new Image();
     var image4 = new Image();
+    var image5 = new Image();
 
     // Ensure image1 loads first
     image1.onload = function () {
@@ -380,6 +392,20 @@ function initTextures() {
 
     // Load image4 (Make sure it is a Power of Two dimension image)
     image4.src = '../resources/WoodPlank.jpg';
+
+    // Ensure image5 loads after image1
+    image5.onload = function () {
+        console.log("Image loaded:", image5.src);
+        drawImageToCanvas(image5);  // Draw on canvas (debugging)
+        sendTextureToTEXTURE4(image5); // Continue WebGL processing with image5
+    };
+
+    image5.onerror = function () {
+        console.error("Failed to load image:", image5.src);
+    };
+
+    // Load image5 (Make sure it is a Power of Two dimension image)
+    image5.src = '../resources/grass_field.jpg';
 }
 
 // Function to draw image on HTML <canvas>
@@ -456,6 +482,22 @@ function sendTextureToTEXTURE3(image) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
     gl.uniform1i(u_Sampler3, 3);  // Set the sampler for TEXTURE1
+    console.log('Texture bound to TEXTURE3, Sampler3 set to 3');
+}
+
+function sendTextureToTEXTURE4(image) {
+    
+    var texture = gl.createTexture();
+    console.log('Binding texture to TEXTURE4:', image.src);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);  // Flip the image's y-axis
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    gl.uniform1i(u_Sampler4, 4);  // Set the sampler for TEXTURE1
     console.log('Texture bound to TEXTURE3, Sampler3 set to 3');
 }
 
@@ -856,7 +898,7 @@ function renderAllShapes(){
     // Draw Floor
     var floor = new Cube();
     floor.color = [1,0,0,1];
-    floor.textureNum = 0;
+    floor.textureNum = 4;
     floor.matrix.translate(0, -.75, 0);
     floor.matrix.scale(30, 0, 30);
     floor.matrix.translate(-.5, 0, -.5);
